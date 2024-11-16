@@ -1,0 +1,6 @@
+bool use_file
+string buffer_or_filename
+---
+uint64 idx
+---
+uint64 curr_idx

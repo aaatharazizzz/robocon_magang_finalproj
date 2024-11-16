@@ -1,0 +1,12 @@
+float32 x
+float32 y
+---
+float32 goal_x
+float32 goal_y
+---
+float32 err_p
+float32 err_i
+float32 err_d
+float32 pid
+float32 curr_x
+float32 curr_y
