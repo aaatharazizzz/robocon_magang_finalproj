@@ -23,27 +23,18 @@ public:
 private:
     double linear_speed;
     double angular_speed;
-    float deadzone;
     void joy_subscriber_callback(const sensor_msgs::msg::Joy &joy_msg);
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_publisher;
-    
 };
 
 Sim2025ControlJoy::Sim2025ControlJoy() : rclcpp::Node("sim2025_control_joy") , linear_speed(1), angular_speed(M_PI_2) {
     using namespace std::placeholders;
+    this->declare_parameter("linear_speed", 1.0);
+    this->declare_parameter("angular_speed", M_PI_2);
     this->get_parameter("linear_speed", linear_speed);
     this->get_parameter("angular_speed", angular_speed);
-    auto joy_param_client = std::make_shared<rclcpp::SyncParametersClient>(this, "joy_node");
-    while(!joy_param_client->wait_for_service(1s)) {
-        if(!rclcpp::ok()) {
-            RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for service, Exiting..");
-            rclcpp::shutdown();
-            exit(1);
-        }
-        RCLCPP_INFO(this->get_logger(), "Service /joy_node not available, waiting...");
-    }
-    deadzone = joy_param_client->get_parameter<float>("deadzone");
+
     joy_subscriber = this->create_subscription<sensor_msgs::msg::Joy>(
         "/joy", 
         rclcpp::QoS(rclcpp::SystemDefaultsQoS()),
@@ -57,16 +48,10 @@ Sim2025ControlJoy::Sim2025ControlJoy() : rclcpp::Node("sim2025_control_joy") , l
 
 void Sim2025ControlJoy::joy_subscriber_callback(const sensor_msgs::msg::Joy &joy_msg) {
     geometry_msgs::msg::Twist twist;
-    if(abs(joy_msg.axes[JOY_AXIS_LEFT_Y]) < deadzone) {
-        twist.linear.x = 0;
-    } else {
-        twist.linear.x = joy_msg.axes[JOY_AXIS_LEFT_Y] * linear_speed;
-    }
-    if(abs(joy_msg.axes[JOY_AXIS_RIGHT_X]) < deadzone) {
-        twist.angular.z = 0;
-    } else {
-        twist.angular.z = joy_msg.axes[JOY_AXIS_RIGHT_X] * angular_speed;
-    }
+    
+    twist.linear.x = joy_msg.axes[JOY_AXIS_LEFT_Y] * linear_speed;
+    twist.angular.z = joy_msg.axes[JOY_AXIS_RIGHT_X] * angular_speed;
+    
     twist_publisher->publish(twist);
 }
 

@@ -34,7 +34,6 @@ public:
 private:
     
     cv::Mat image_frame;
-    cv::Mat depth_frame;
     sensor_msgs::msg::PointCloud2::SharedPtr pointcloud_shared;
 
     int h_min;
@@ -59,10 +58,8 @@ private:
 
 
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg);
-    void depth_callback(const sensor_msgs::msg::Image::SharedPtr msg);
     void pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
-
-
+    
 }; 
 
 
@@ -98,11 +95,6 @@ Sim2025FollowBall::Sim2025FollowBall() : rclcpp::Node("follow_ball") {
         10,
         std::bind(&Sim2025FollowBall::image_callback, this, _1)
     );
-    depth_subscriber = this->create_subscription<sensor_msgs::msg::Image>(
-        "depth_camera/depth/image_raw",
-        10,
-        std::bind(&Sim2025FollowBall::depth_callback, this, _1)
-    );
     pointcloud_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         "depth_camera/points",
         10,
@@ -117,14 +109,6 @@ Sim2025FollowBall::Sim2025FollowBall() : rclcpp::Node("follow_ball") {
 void Sim2025FollowBall::image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
     try {
         image_frame = cv_bridge::toCvShare(msg, "bgr8")->image;
-
-    } catch(cv_bridge::Exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "cvbridge error : %s", e.what());
-    }
-}
-
-void Sim2025FollowBall::depth_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
-    try {
 
     } catch(cv_bridge::Exception& e) {
         RCLCPP_ERROR(this->get_logger(), "cvbridge error : %s", e.what());
@@ -160,18 +144,13 @@ void Sim2025FollowBall::Run() {
         this->get_parameter("ki", ki);
         this->get_parameter("kd", kd);
         if(!image_frame.empty() && pointcloud_shared != nullptr) {
-
-            int image_w = image_frame.cols;
-            int image_h = image_frame.rows;
-
-
-            cv::Mat grayframe, mask, canny;
+            cv::Mat grayframe;//, mask, canny;
             cv::cvtColor(image_frame, grayframe, cv::COLOR_BGR2GRAY);
             std::vector<cv::Vec3f> circles;
             cv::Mat blurframe;
             cv::GaussianBlur(grayframe, blurframe, cv::Size(11, 11), 0);
-            cv::inRange(image_frame, cv::Scalar(h_min, s_min, v_min), cv::Scalar(h_max, s_max, v_max), mask);            
-            cv::GaussianBlur(mask, mask, cv::Size(5, 5), 0);
+            //cv::inRange(image_frame, cv::Scalar(h_min, s_min, v_min), cv::Scalar(h_max, s_max, v_max), mask);            
+            //cv::GaussianBlur(mask, mask, cv::Size(5, 5), 0);
 
 
             cv::HoughCircles(grayframe, circles, CV_HOUGH_GRADIENT, hough_dp, hough_mindist, hough_prm1, hough_prm2, 10);

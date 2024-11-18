@@ -14,7 +14,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_executable(follow_ball src/follow_ball.cpp)
+add_executable(follow_ball src/sim2025_follow_ball.cpp)
 target_include_directories(follow_ball PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)

@@ -39,21 +39,22 @@ public:
     Sim2025ControlKey();
 private:
     void timer_callback();
+    
     double linear_speed;
     double angular_speed;
-    float hz;
     geometry_msgs::msg::Twist current_twist;
 
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr twist_publisher;
     rclcpp::TimerBase::SharedPtr timer;
+
 };
 
-Sim2025ControlKey::Sim2025ControlKey() : rclcpp::Node("sim2025_control_joy") , linear_speed(1), angular_speed(M_PI_2), hz(125) , current_twist(geometry_msgs::msg::Twist()){
+Sim2025ControlKey::Sim2025ControlKey() : rclcpp::Node("sim2025_control_key") , linear_speed(1), angular_speed(M_PI_2) , current_twist(geometry_msgs::msg::Twist()){
     using namespace std::placeholders;
+    this->declare_parameter("linear_speed", 1.0);
+    this->declare_parameter("angular_speed", M_PI_2);
     this->get_parameter("linear_speed", linear_speed);
     this->get_parameter("angular_speed", angular_speed);
-    this->get_parameter("hz", hz);
-    
     timer = this->create_wall_timer(
         10ms,
         std::bind(&Sim2025ControlKey::timer_callback, this)
@@ -64,25 +65,23 @@ Sim2025ControlKey::Sim2025ControlKey() : rclcpp::Node("sim2025_control_joy") , l
     );
     printf(R"(
 Welcome to sim2025-control-key
-    CONTROLS (case-sensitive)
-        MOVEMENT
-        (top->bottom : forward->backward)
-        (left->right : counterclockwise->clockwise)
+CONTROLS (case-sensitive)
+MOVEMENT
+    (top->bottom : forward->backward)
+    (left->right : counterclockwise->clockwise)
 
-            q   w   e
-            a   s   d
-            z   x   c
+    q   w   e
+    a   s   d
+    z   x   c
         
-        MODIFIER
-            1 : prompt 
-            2
-            3
-)"  );
+initial linear speed : %f, angular speed : %f
+)", linear_speed, angular_speed);
 }
 
 void Sim2025ControlKey::timer_callback() {
     int input = getch();
     if(input == 3) {
+        //interrupt
         timer->cancel();
         return;
     }
