@@ -14,14 +14,14 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sim2025_interfaces REQUIRED)
 
-add_executable(sim2025_follow_targets src/sim2025_follow_targets.cpp)
-target_include_directories(sim2025_follow_targets PUBLIC
+add_executable(follow_targets src/sim2025_follow_targets.cpp)
+target_include_directories(follow_targets PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(sim2025_follow_targets PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-ament_target_dependencies(sim2025_follow_targets rclcpp rclcpp_action rclcpp_components geometry_msgs nav_msgs sim2025_interfaces)
+target_compile_features(follow_targets PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+ament_target_dependencies(follow_targets rclcpp rclcpp_action rclcpp_components geometry_msgs nav_msgs sim2025_interfaces)
 
-install(TARGETS sim2025_follow_targets
+install(TARGETS follow_targets
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

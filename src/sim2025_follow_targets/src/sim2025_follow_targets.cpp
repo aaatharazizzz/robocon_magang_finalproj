@@ -3,6 +3,7 @@
 #include <sstream>
 #include <thread>
 #include <memory>
+#include <istream>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -12,11 +13,10 @@
 #include "sim2025_interfaces/action/follow_target.hpp"
 #include "sim2025_interfaces/action/follow_targets.hpp"
 
-std::vector<sim2025_interfaces::action::FollowTarget::Goal> ParseFollowGoalsFromFile(const char *filename) {
+std::vector<sim2025_interfaces::action::FollowTarget::Goal> ParseFollowGoals(std::istream& istream) {
     std::vector<sim2025_interfaces::action::FollowTarget::Goal> goals;
-    std::ifstream file(filename);
     std::string line;
-    while(std::getline(file, line)) {
+    while(std::getline(istream, line)) {
         int i = 0;
         sim2025_interfaces::action::FollowTarget::Goal the_goal;
         std::string token;
@@ -121,8 +121,15 @@ void Sim2025FollowTargets::follow_target_result_callback(const GoalHandleFollowT
 }
 
 rclcpp_action::GoalResponse Sim2025FollowTargets::handle_goal(const rclcpp_action::GoalUUID &uuid, std::shared_ptr<const FollowTargets::Goal> goal) {
+    (void) uuid;
     try {
-        target_coords = ParseFollowGoalsFromFile(goal->buffer_or_filename.c_str());
+        if(goal->use_file) {
+            std::ifstream file(goal->buffer_or_filename);
+            target_coords = ParseFollowGoals(file);
+        } else {
+            std::stringstream sstream(goal->buffer_or_filename);
+            target_coords = ParseFollowGoals(sstream);
+        }
     } catch(const std::exception& e) {
         RCLCPP_ERROR(this->get_logger(), e.what());
         return rclcpp_action::GoalResponse::REJECT;
@@ -131,6 +138,7 @@ rclcpp_action::GoalResponse Sim2025FollowTargets::handle_goal(const rclcpp_actio
 }
 
 rclcpp_action::CancelResponse Sim2025FollowTargets::handle_cancel(const std::shared_ptr<GoalHandleFollowTargets> goal_handle) {
+    (void) goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
@@ -143,9 +151,11 @@ void Sim2025FollowTargets::action_execute(const std::shared_ptr<GoalHandleFollow
     rclcpp::Rate loop_rate(60);
 
     auto result = std::make_shared<FollowTargets::Result>();
-
+    auto feedback = std::make_shared<FollowTargets::Feedback>();
     for(size_t i = 0; i < target_coords.size(); i++) {
         RCLCPP_INFO(this->get_logger(), "Sending goal (%f, %f) from index %zu", target_coords[i].x, target_coords[i].y, i);
+        feedback->curr_idx = i;
+        goal_handle->publish_feedback(feedback);
         follow_target_client_send_goal(target_coords[i]);
         while(follow_target_goalstatus.status == rclcpp_action::GoalStatus::STATUS_EXECUTING) {
             loop_rate.sleep();
@@ -156,6 +166,7 @@ void Sim2025FollowTargets::action_execute(const std::shared_ptr<GoalHandleFollow
     }
     if(rclcpp::ok()) {
         RCLCPP_INFO(this->get_logger(), "Execution Finished");
+        result->idx = target_coords.size();
         goal_handle->succeed(result);
     }
 }
@@ -165,7 +176,5 @@ int main(int argc, char ** argv)
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<Sim2025FollowTargets>());
     rclcpp::shutdown();
-    
-    printf("hello world sim2025_follow_targets package\n");
     return 0;
 }
